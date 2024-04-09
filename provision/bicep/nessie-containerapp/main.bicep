@@ -1,21 +1,42 @@
 metadata description = 'Creates a container with Postgres dev service'
 
-param appEnvName string = 'nessie-app-env'
+param appEnvName string
 param location string = resourceGroup().location
 
-param nessiePort int = 19120
-param dbPort int = 5432
+param nessiePort int
+param dbPort int
 
-param dbPasswordSecretName string = 'db-password'
+param dbContainerName string
+
+param dbPasswordSecretName string
 @secure()
 param dbPasswordSecretValue string
-param dbName string = 'nessie'
-param dbUser string = 'nessie_user'
+param dbName string
+param dbUser string
 
-resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
-  name: appEnvName
-  location: location
-  properties: {}
+module appEnv '../modules/managed_container_env.bicep' = {
+  name: 'app-environment-deployment'
+  params: {
+    location: location
+    appEnvName: appEnvName
+  }
+}
+
+module nessieDb '../modules/postgres_container_app.bicep' = {
+  name: 'nessie-db'
+  params: {
+    containerEnvrionmentId: appEnv.outputs.id
+    dbName: dbName
+    dbPasswordSecretName: dbPasswordSecretName
+    dbPasswordSecretValue: dbPasswordSecretValue
+    dbUser: dbUser
+    location: location
+    resourceName: dbContainerName
+    port: dbPort
+  }
+  dependsOn: [
+    appEnv
+  ]
 }
 
 resource nessieCatalog 'Microsoft.App/containerApps@2023-11-02-preview' = {
@@ -43,7 +64,7 @@ resource nessieCatalog 'Microsoft.App/containerApps@2023-11-02-preview' = {
         }
       ]
     }
-    managedEnvironmentId: containerAppEnv.id
+    environmentId: appEnv.outputs.id
     template: {
       containers: [
         {
@@ -56,7 +77,7 @@ resource nessieCatalog 'Microsoft.App/containerApps@2023-11-02-preview' = {
             }
             {
               name: 'QUARKUS_DATASOURCE_JDBC_URL'
-              value: 'jdbc:postgresql://localhost:${dbPort}/${dbName}'
+              value: 'jdbc:postgresql://${dbContainerName}:${dbPort}/${dbName}'
             }
             {
               name: 'QUARKUS_DATASOURCE_USERNAME'
@@ -73,32 +94,6 @@ resource nessieCatalog 'Microsoft.App/containerApps@2023-11-02-preview' = {
           }
           probes: []
         }
-        {
-          image: 'mcr.microsoft.com/k8se/services/postgres:14'
-          name: 'nessie-db'
-          env: [
-            {
-              name: 'POSTGRES_USER'
-              value: dbUser
-            }
-            {
-              name: 'POSTGRES_DB'
-              value: dbName
-            }
-            {
-              name: 'PGDATA'
-              value: '/mnt/data/pgdata'
-            }
-            {
-              name: 'POSTGRES_PASSWORD'
-              secretRef: dbPasswordSecretName
-            }
-          ]
-          resources: {
-            cpu: json('1')
-            memory: '2Gi'
-          }
-        }
       ]
       scale: {
         minReplicas: 0
@@ -107,4 +102,8 @@ resource nessieCatalog 'Microsoft.App/containerApps@2023-11-02-preview' = {
       }
     }
   }
+  dependsOn: [
+    nessieDb
+    appEnv
+  ]
 }
