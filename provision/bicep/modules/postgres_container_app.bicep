@@ -2,13 +2,15 @@ param location string
 param containerEnvrionmentId string
 param resourceName string
 
+param storageAccountName string
+param fileShareVolumeName string
+param mountPath string
+
 @secure()
 param dbPasswordSecretValue string
 param dbPasswordSecretName string
-
 param dbUser string
 param dbName string
-
 param port int
 
 resource postgresDb 'Microsoft.App/containerApps@2023-11-02-preview' = {
@@ -53,17 +55,36 @@ resource postgresDb 'Microsoft.App/containerApps@2023-11-02-preview' = {
             }
             {
               name: 'PGDATA'
-              value: '/mnt/data/pgdata'
+              value: 'postgresql:/mnt/data/pgdata'
             }
             {
               name: 'POSTGRES_PASSWORD'
               secretRef: dbPasswordSecretName
             }
           ]
+          volumeMounts: [
+            {
+              volumeName: fileShareVolumeName
+              mountPath: mountPath
+              subPath: dbName
+            }
+          ]
           resources: {
             cpu: json('1')
             memory: '2Gi'
           }
+        }
+      ]
+      scale: {
+        minReplicas: 0
+        maxReplicas: 1
+        rules: null
+      }
+      volumes: [
+        {
+          name: fileShareVolumeName
+          storageName: storageAccountName
+          storageType: 'AzureFile'
         }
       ]
     }

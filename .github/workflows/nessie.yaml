@@ -20,7 +20,7 @@ jobs:
           with:
             inlineScript: |
                 az group create \
-                --name ${{env.RG_NAME}}\
+                --name ${{env.RG_NAME}} \
                 --location ${{env.RG_LOCATION}}
                 
         - name: 'Deploy Bicep file'
@@ -28,7 +28,7 @@ jobs:
           with:
             inlineScript: |
                 az deployment group create \
-                --resource-group ${{env.RESOURCE_GROUP}} \
-                --template-file /provision/bicep/nessie-containerapp/main.bicep \
-                --parameters /provision/bicep/nessie-containerapp/main.bicepparam \
+                --resource-group ${{env.RG_NAME}} \
+                --template-file provision/bicep/nessie-containerapp/main.bicep \
+                --parameters provision/bicep/nessie-containerapp/main.bicepparam \
                 --parameters dbPasswordSecretValue='${{ secrets.NESSIE_DB_USER_PASSWORD }}'

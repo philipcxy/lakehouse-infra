@@ -14,12 +14,30 @@ param dbPasswordSecretValue string
 param dbName string
 param dbUser string
 
+param fsName string
+param fsVolumeName string
+param fsVolumeMntPath string
+param storageAccountName string
+
 module appEnv '../modules/managed_container_env.bicep' = {
   name: 'app-environment-deployment'
   params: {
     location: location
     appEnvName: appEnvName
   }
+}
+
+module managedStorage '../modules/managed_storage.bicep' = {
+  name: 'managed-storage-deployment'
+  params: {
+    managedEnvName: appEnvName
+    fileShareName: fsName
+    location: location
+    storageAccountName: storageAccountName
+  }
+  dependsOn: [
+    appEnv
+  ]
 }
 
 module nessieDb '../modules/postgres_container_app.bicep' = {
@@ -33,9 +51,13 @@ module nessieDb '../modules/postgres_container_app.bicep' = {
     location: location
     resourceName: dbContainerName
     port: dbPort
+    fileShareVolumeName: fsVolumeName
+    mountPath: fsVolumeMntPath
+    storageAccountName: storageAccountName
   }
   dependsOn: [
     appEnv
+    managedStorage
   ]
 }
 
