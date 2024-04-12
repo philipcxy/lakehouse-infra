@@ -42,7 +42,7 @@ resource postgresDb 'Microsoft.App/containerApps@2023-11-02-preview' = {
     template: {
       containers: [
         {
-          image: 'mcr.microsoft.com/k8se/services/postgres:14'
+          image: 'postgres'
           name: 'postgres-db'
           env: [
             {
@@ -55,7 +55,7 @@ resource postgresDb 'Microsoft.App/containerApps@2023-11-02-preview' = {
             }
             {
               name: 'PGDATA'
-              value: 'postgresql:/mnt/data/pgdata'
+              value: mountPath
             }
             {
               name: 'POSTGRES_PASSWORD'
