@@ -9,12 +9,10 @@ resource fileStorageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageAccountName
   location: location
   sku: {
-    name: 'Standard_LRS'
+    name: 'Premium_LRS'
   }
   kind: 'StorageV2'
-  properties: {
-    accessTier: 'Hot'
-  }
+  properties: {}
 
   resource fileService 'fileServices' = {
     name: 'default'
@@ -22,6 +20,10 @@ resource fileStorageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
 
     resource fileShare 'shares' = {
       name: fileShareName
+      properties: {
+        enabledProtocols: 'NFS'
+        shareQuota: 100
+      }
     }
   }
 }
