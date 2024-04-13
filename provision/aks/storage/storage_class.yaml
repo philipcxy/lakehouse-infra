@@ -1,0 +1,11 @@
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: azuredisk-csi-waitforfirstconsumer
+provisioner: disk.csi.azure.com
+parameters:
+  skuname: StandardSSD_LRS
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

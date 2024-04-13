@@ -1,0 +1,49 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nessie-service
+spec:
+  selector:
+    app: nessie-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 19120
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nessie
+spec:
+  serviceName: nessie-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nessie
+  template:
+    metadata:
+      labels:
+        app: nessie
+    spec:
+      containers:
+        - name: nessie
+          image: ghcr.io/projectnessie/nessie
+          ports:
+            - containerPort: 19120
+          env:
+            - name: NESSIE_VERSION_STORE_TYPE
+              value: jdbc
+            - name: QUARKUS_DATASOURCE_JDBC_URL
+              value: jdbc:postgresql://postgres-service.default.svc.cluster.local:5432/nessie
+            - name: QUARKUS_DATASOURCE_USERNAME
+              value: nessie
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nessie-secret
+                  key: nessie-db-password
+          resources:
+            limits:
+              cpu: 100m
+              memory: 256Mi
