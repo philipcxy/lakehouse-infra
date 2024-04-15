@@ -1,0 +1,9 @@
+additionalCatalogs:
+  betting: |-
+    connector.name=iceberg
+    iceberg.catalog.type=nessie
+    iceberg.nessie-catalog.uri=
+    iceberg.nessie-catalog.default-warehouse-dir=/tmp
+    fs.native-azure.enabled=true
+    azure.auth-type=ACCESS_KEY
+    azure.access-key=
