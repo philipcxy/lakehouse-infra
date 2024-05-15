@@ -1,4 +1,4 @@
-metadata description = 'Creates a container with Postgres dev service'
+metadata description = 'Creates a container app for Nessie with configured Postgres container'
 
 param appEnvName string
 param location string = resourceGroup().location

@@ -1,7 +1,7 @@
 name: Deploy Nessie Cataog
 on: [workflow_dispatch]
 env:
-    RG_NAME: "betting-lakehouse"
+    RG_NAME: "lakehouse-catalog"
     RG_LOCATION: "westeurope"
 jobs:
     deploy:
