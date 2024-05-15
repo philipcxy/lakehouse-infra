@@ -60,3 +60,5 @@ spec:
         - name: postgresdata
           persistentVolumeClaim:
             claimName: managed-database-disk
+      nodeSelector:
+        agentpool: agentpool
