@@ -1,0 +1,47 @@
+additionalCatalogs:
+  betting_main: |-
+    connector.name=iceberg
+    iceberg.catalog.type=nessie
+    iceberg.nessie-catalog.uri=${nessie-uri}
+    iceberg.nessie-catalog.default-warehouse-dir=/tmp/main
+    fs.native-azure.enabled=true
+    azure.auth-type=ACCESS_KEY
+    azure.access-key=${azure_access_key}
+  betting_dev: |-
+    connector.name=iceberg
+    iceberg.catalog.type=nessie
+    iceberg.nessie-catalog.ref=dev
+    iceberg.nessie-catalog.uri=${nessie-uri}
+    iceberg.nessie-catalog.default-warehouse-dir=/tmp/dev
+    fs.native-azure.enabled=true
+    azure.auth-type=ACCESS_KEY
+    azure.access-key=${azure_access_key}
+spill-enabled: true
+node-selector:
+  agentpool: userpool
+service:
+  type: LoadBalancer
+  port: 8080
+  nodePort: 8080
+ingress:
+  enabled: true
+  className: webapprouting.kubernetes.azure.com
+  hosts:
+    - paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: trino
+              port:
+                number: 8080
+worker:
+  config:
+    query:
+      maxMemoryPerNode: 13GB
+      maxMemory: 27GB
+  jvm:
+    maxHeapSize: "30G"
+coordinator:
+  jvm:
+    maxHeapSize: "2G"
