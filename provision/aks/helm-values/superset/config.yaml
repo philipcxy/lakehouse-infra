@@ -1,0 +1,5 @@
+configOverrides:
+  secret: |
+    SECRET_KEY = ${superset_secret}
+additionalRequirements:
+  - sqlalchemy-trino
