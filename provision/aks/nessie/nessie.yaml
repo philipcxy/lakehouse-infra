@@ -46,7 +46,7 @@ spec:
     spec:
       containers:
         - name: nessie
-          image: ghcr.io/projectnessie/nessie
+          image: ghcr.io/projectnessie/nessie:0.79.0
           ports:
             - containerPort: 19120
           env:
