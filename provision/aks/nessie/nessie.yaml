@@ -1,21 +1,3 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: nessie-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  ingressClassName: webapprouting.kubernetes.azure.com
-  rules:
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: nessie-service
-                port:
-                  number: 80
 ---
 apiVersion: v1
 kind: Service
@@ -28,6 +10,12 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 19120
+      name: ui
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+      name: management
+  type: LoadBalancer
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -46,24 +34,26 @@ spec:
     spec:
       containers:
         - name: nessie
-          image: ghcr.io/projectnessie/nessie:0.79.0
+          image: ghcr.io/projectnessie/nessie:0.100.0
           ports:
             - containerPort: 19120
           env:
             - name: NESSIE_VERSION_STORE_TYPE
-              value: jdbc
-            - name: QUARKUS_DATASOURCE_JDBC_URL
+              value: JDBC2
+            - name: NESSIE_VERSION_STORE_PERSIST_JDBC_DATASOURCE
+              value: postgresql
+            - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_URL
               value: jdbc:postgresql://postgres-service.default.svc.cluster.local:5432/nessie
-            - name: QUARKUS_DATASOURCE_USERNAME
+            - name: QUARKUS_DATASOURCE_POSTGRESQL_USERNAME
               value: nessie
-            - name: QUARKUS_DATASOURCE_PASSWORD
+            - name: QUARKUS_DATASOURCE_POSTGRESQL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: nessie-secret
                   key: nessie-db-password
           resources:
             limits:
-              cpu: 100m
-              memory: 256Mi
+              cpu: 500m
+              memory: 512Mi
       nodeSelector:
         agentpool: agentpool

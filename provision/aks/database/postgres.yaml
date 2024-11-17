@@ -59,6 +59,9 @@ spec:
       volumes:
         - name: postgresdata
           persistentVolumeClaim:
-            claimName: managed-database-disk
+            claimName: postgres-pvc
+        - name: postgres-config-volume
+          configMap:
+            name: postgres-default-config
       nodeSelector:
         agentpool: agentpool
