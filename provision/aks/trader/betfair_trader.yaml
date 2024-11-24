@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: betfair-trader
   namespace: default
+  labels:
+    azure.workload.identity/use: "true" # Enable Azure Workload Identity
 spec:
   replicas: 1
   selector:
@@ -13,6 +15,7 @@ spec:
       labels:
         app: betfair-trader
     spec:
+      serviceAccountName: betfair-trader-service-account
       containers:
         - name: betfair-trader
           image: bettingakscontainerregistry.azurecr.io/betfair_trader:1.4.0
@@ -24,12 +27,11 @@ spec:
               value: "redis-service"
           resources:
             requests:
-              memory: "128Mi"
+              memory: "512Mi"
               cpu: "500m"
             limits:
-              memory: "256Mi"
+              memory: "512Mi"
               cpu: "1"
-
 ---
 apiVersion: v1
 kind: Service

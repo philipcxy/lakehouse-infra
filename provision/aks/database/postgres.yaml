@@ -54,8 +54,8 @@ spec:
               subPath: pgdata
           resources:
             limits:
-              cpu: 100m
-              memory: 2Gi
+              cpu: 200m
+              memory: 1Gi
       volumes:
         - name: postgresdata
           persistentVolumeClaim:
