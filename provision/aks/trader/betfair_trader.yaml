@@ -18,13 +18,36 @@ spec:
       serviceAccountName: betfair-trader-service-account
       containers:
         - name: betfair-trader
-          image: bettingakscontainerregistry.azurecr.io/betfair_trader:1.4.0
-          imagePullPolicy: IfNotPresent
+          image: bettingakscontainerregistry.azurecr.io/betfair_trader:1.5.0
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
+          volumeMounts:
+            - name: secrets-store01-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
           env:
             - name: REDIS_HOST
               value: "redis-service"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: betfair
+                  key: username
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: betfair
+                  key: password
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: betfair
+                  key: app-key
+            - name: BET_SIZE
+              value: "250"
           resources:
             requests:
               memory: "512Mi"
@@ -32,6 +55,13 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "1"
+      volumes:
+        - name: secrets-store01-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "betfair-secret-provider"
 ---
 apiVersion: v1
 kind: Service
