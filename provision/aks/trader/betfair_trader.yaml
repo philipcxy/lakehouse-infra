@@ -18,7 +18,7 @@ spec:
       serviceAccountName: betfair-trader-service-account
       containers:
         - name: betfair-trader
-          image: bettingakscontainerregistry.azurecr.io/betfair_trader:1.5.0
+          image: bettingakscontainerregistry.azurecr.io/betfair_trader:1.6.0
           imagePullPolicy: Always
           ports:
             - containerPort: 80
@@ -48,6 +48,8 @@ spec:
                   key: app-key
             - name: BET_SIZE
               value: "250"
+            - name: AZURE_CLIENT_ID
+              value: "cad42587-a966-47ec-9b38-07a7fd9b0b00"
           resources:
             requests:
               memory: "512Mi"
