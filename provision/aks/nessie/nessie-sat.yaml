@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nessie-sat-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: nessie-sat
+          image: ghcr.io/projectnessie/nessie-server-admin:0.101.3
+          args:
+            - erase-repository
+            - -r
+            - "main"
+            - --confirmation-code=cl9ue7d47y1f
+          env:
+            - name: NESSIE_VERSION_STORE_TYPE
+              value: JDBC2
+            - name: NESSIE_SERVER_DEFAULT_BRANCH
+              value: main
+            - name: NESSIE_VERSION_STORE_PERSIST_JDBC_DATASOURCE
+              value: postgresql
+            - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_URL
+              value: jdbc:postgresql://postgres-service.default.svc.cluster.local:5432/nessie
+            - name: QUARKUS_DATASOURCE_POSTGRESQL_USERNAME
+              value: nessie
+            - name: QUARKUS_DATASOURCE_POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nessie-secret
+                  key: nessie-db-password
+      restartPolicy: Never

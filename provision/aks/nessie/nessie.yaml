@@ -3,6 +3,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nessie-service
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-pls-create: "true"
+    service.beta.kubernetes.io/azure-pls-name: nessie-pls
 spec:
   selector:
     app: nessie
@@ -34,12 +38,14 @@ spec:
     spec:
       containers:
         - name: nessie
-          image: ghcr.io/projectnessie/nessie:0.100.0
+          image: ghcr.io/projectnessie/nessie:0.99.0
           ports:
             - containerPort: 19120
           env:
             - name: NESSIE_VERSION_STORE_TYPE
               value: JDBC2
+            - name: NESSIE_SERVER_DEFAULT_BRANCH
+              value: main
             - name: NESSIE_VERSION_STORE_PERSIST_JDBC_DATASOURCE
               value: postgresql
             - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_URL
