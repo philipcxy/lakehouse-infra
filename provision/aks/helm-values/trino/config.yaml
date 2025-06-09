@@ -1,3 +1,8 @@
+image:
+  tag: "476"
+  repository: trinodb/trino
+  pullPolicy: IfNotPresent
+
 env:
   - name: AZURE_ACCESS_KEY
     valueFrom:
@@ -21,12 +26,13 @@ ingress:
               port:
                 number: 8080
 
-# JVM settings: roughly 75% of memory limit for heap
-# All resource settings assume E16s v6 VMs with 128GB RAM (spot)  
-jvm:
-  maxHeapSize: "72G"
-  gcMethod: "G1GC"
-
+server:
+  workers: 2 # Number of worker nodes. Total nodes = 1 (coordinator) + 4 (workers) = 5
+  config:
+    query:
+      maxMemory: "200GB" # Total user memory for a query across the cluster
+      maxTotalMemory: "400GB" # Total memory (user + revocable) for a query across the cluster
+  
 catalogs:
   betting_warehouse: |-
     connector.name=iceberg
@@ -36,22 +42,40 @@ catalogs:
     azure.auth-type=ACCESS_KEY
     azure.access-key=${ENV:AZURE_ACCESS_KEY}
 
-# Trino config.properties for memory tuning
-config:
-  config.properties: |-
-    coordinator=true
-    node-scheduler.include-coordinator=false
-    http-server.http.port=8080
-    query.max-memory=320GB                        # Total across cluster
-    query.max-memory-per-node=64GB
-    memory.heap-headroom-per-node=8GB
-    discovery-server.enabled=true
-    discovery.uri=http://trino:8080
-
 coordinator:
+  jvm:
+    maxHeapSize: "96G" 
+    additionalJVMConfig:
+      - "-XX:+ExitOnOutOfMemoryError"
+      - "-XX:+HeapDumpOnOutOfMemoryError"
+      - "-XX:HeapDumpPath=/var/log/trino/heapdump.hprof"
+      - "-XX:+UseG1GC"
+      - "-XX:G1HeapRegionSize=32M"
+      - "-XX:G1MaxNewSizePercent=60"
+      - "-XX:G1SurvivorRatio=10"
+      - "-XX:G1HeapWastePercent=5"
+      - "-XX:G1MixedGCPercentage=30"
+      - "-XX:InitiatingHeapOccupancyPercent=35"
+      - "-XX:OnOutOfMemoryError=kill -9 %p"
+  
+  config:
+    node:
+      environment: production      
+    coordinator: true
+    node-scheduler:
+      include-coordinator: false 
+    http-server:
+      http:
+        port: 8080
+    discovery:
+      uri: "http://trino:8080" 
+    query:
+      maxMemoryPerNode: "48GB"
+    memory:
+      heapHeadroomPerNode: "15GB" 
+          
   nodeSelector:
       agentpool: workerpool
-
   tolerations:
       - key: "dedicated"
         operator: "Equal"
@@ -61,7 +85,6 @@ coordinator:
         operator: "Equal"
         value: "spot"
         effect: "NoSchedule"
-
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -71,11 +94,65 @@ coordinator:
                 operator: In
                 values:
                   - workerpool
+  resources:
+      requests:
+        memory: "100Gi" # Slightly more than 96G -Xmx to allow some wiggle room for OS/other overhead
+        cpu: "10" # Based on your 16vCPU, leave some for OS/kubelet
+      limits:
+        memory: "105Gi" # Should be larger than request and -Xmx
+        cpu: "14"
 
 worker:
+  jvm:
+    maxHeapSize: "96G"
+    additionalJVMConfig:
+      - "-XX:+ExitOnOutOfMemoryError"
+      - "-XX:+HeapDumpOnOutOfMemoryError"
+      - "-XX:HeapDumpPath=/var/log/trino/heapdump.hprof"
+      - "-XX:+UseG1GC"
+      - "-XX:G1HeapRegionSize=32M"
+      - "-XX:G1MaxNewSizePercent=60"
+      - "-XX:G1SurvivorRatio=10"
+      - "-XX:G1HeapWastePercent=5"
+      - "-XX:G1MixedGCPercentage=30"
+      - "-XX:InitiatingHeapOccupancyPercent=35"
+      - "-XX:OnOutOfMemoryError=kill -9 %p"
+  config:
+    node:
+      environment: production
+    memory:
+      heapHeadroomPerNode: "15GB"
+    query:
+      maxMemoryPerNode: "48GB"
+      
+  autoscaling:
+      enabled: true
+      minReplicas: 2         # Min number of worker pods
+      maxReplicas: 5         # Max number of worker pods
+      targetCPUUtilizationPercentage: 70   # Scale up/down based on CPU usage
+      targetMemoryUtilizationPercentage: 75 # Also scale based on memory usage
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+            - type: Pods
+              value: 4
+              periodSeconds: 15
+          selectPolicy: Max
+          
+  # Node Selector / Affinity (Optional but Recommended for control)
+  # Ensure your nodes are sized appropriately for these pods
   nodeSelector:
       agentpool: workerpool
-
   tolerations:
       - key: "dedicated"
         operator: "Equal"
@@ -85,7 +162,6 @@ worker:
         operator: "Equal"
         value: "spot"
         effect: "NoSchedule"
-
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -95,34 +171,10 @@ worker:
                 operator: In
                 values:
                   - workerpool
-
   resources:
     requests:
-      cpu: "14"
-      memory: "120Gi"
+      memory: "100Gi" # Slightly more than 96G -Xmx
+      cpu: "10" 
     limits:
+      memory: "105Gi" # Should be larger than request and -Xmx
       cpu: "14"
-      memory: "120Gi"
-  autoscaling:
-    enabled: true
-    minReplicas: 2         # Min number of worker pods
-    maxReplicas: 5         # Max number of worker pods
-    targetCPUUtilizationPercentage: 70   # Scale up/down based on CPU usage
-    targetMemoryUtilizationPercentage: 75 # Also scale based on memory usage
-    behavior:
-      scaleDown:
-        stabilizationWindowSeconds: 300
-        policies:
-          - type: Percent
-            value: 100
-            periodSeconds: 15
-      scaleUp:
-        stabilizationWindowSeconds: 0
-        policies:
-          - type: Percent
-            value: 100
-            periodSeconds: 15
-          - type: Pods
-            value: 4
-            periodSeconds: 15
-        selectPolicy: Max
