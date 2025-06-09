@@ -39,14 +39,14 @@ spec:
                   key: db_name
             - name: POSTGRES_USER
               valueFrom:
-                configMapKeyRef:
-                  name: postgres-default-config
-                  key: db_user
+                secretKeyRef:
+                  name: postgres-admin-secret
+                  key: postgres_username
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
-                  key: postgress-admin-password
+                  name: postgres-admin-secret
+                  key: postgres_password
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: postgresdata

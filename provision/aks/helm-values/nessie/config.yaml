@@ -1,0 +1,26 @@
+authentication:
+  enabled: false
+catalog:
+  enabled: true
+  iceberg:
+    defaultWarehouse: betting
+    warehouses:
+      - name: betting
+        type: rest
+        location: abfss://bettingfs@bettingdls.dfs.core.windows.net/warehouse
+  storage:
+    adls:
+      defaultOptions:
+        endpoint: https://bettingdls.dfs.core.windows.net/bettingfs
+        authType: STORAGE_SHARED_KEY
+        accountSecret:
+          name: betting-fs-storage-secret
+          accountKey: account_key
+          accountName: account_name
+versionStoreType: JDBC2
+jdbc:
+  jdbcUrl: jdbc:postgresql://postgres-service.default.svc.cluster.local:5432/nessie
+  secret:
+    name: nessie-secret
+    username: postgres_username
+    password: postgres_password

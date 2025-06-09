@@ -1,3 +1,4 @@
+# This is an older config. Deployment is done now via Helm charts.
 ---
 apiVersion: v1
 kind: Service
@@ -5,6 +6,9 @@ metadata:
   name: nessie-service
   annotations:
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-ipv4: 10.224.0.6 # Use a static IP from the PLS
+    service.beta.kubernetes.io/azure-pls-create: "true"
+    service.beta.kubernetes.io/azure-pls-name: nessie-pls
 spec:
   selector:
     app: nessie
@@ -54,7 +58,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: nessie-secret
-                  key: nessie-db-password
+                  key: postgres_password
           resources:
             limits:
               cpu: 500m

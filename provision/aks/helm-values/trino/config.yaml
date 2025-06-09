@@ -1,28 +1,13 @@
-additionalCatalogs:
-  betting_main: |-
-    connector.name=iceberg
-    iceberg.catalog.type=nessie
-    iceberg.nessie-catalog.uri=${nessie-uri}
-    iceberg.nessie-catalog.default-warehouse-dir=/tmp/main
-    fs.native-azure.enabled=true
-    azure.auth-type=ACCESS_KEY
-    azure.access-key=${azure_access_key}
-  betting_dev: |-
-    connector.name=iceberg
-    iceberg.catalog.type=nessie
-    iceberg.nessie-catalog.ref=dev
-    iceberg.nessie-catalog.uri=${nessie-uri}
-    iceberg.nessie-catalog.default-warehouse-dir=/tmp/dev
-    fs.native-azure.enabled=true
-    azure.auth-type=ACCESS_KEY
-    azure.access-key=${azure_access_key}
-spill-enabled: true
-node-selector:
-  agentpool: userpool
+env:
+  - name: AZURE_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: betting-fs-storage-secret
+        key: account_key
+
 service:
   type: LoadBalancer
   port: 8080
-  nodePort: 8080
 ingress:
   enabled: true
   className: webapprouting.kubernetes.azure.com
@@ -35,13 +20,109 @@ ingress:
               name: trino
               port:
                 number: 8080
-worker:
-  config:
-    query:
-      maxMemoryPerNode: 13GB
-      maxMemory: 27GB
-  jvm:
-    maxHeapSize: "30G"
+
+# JVM settings: roughly 75% of memory limit for heap
+# All resource settings assume E16s v6 VMs with 128GB RAM (spot)  
+jvm:
+  maxHeapSize: "72G"
+  gcMethod: "G1GC"
+
+catalogs:
+  betting_warehouse: |-
+    connector.name=iceberg
+    iceberg.catalog.type=rest
+    iceberg.rest-catalog.uri=http://nessie.default.svc.cluster.local:19120/iceberg
+    fs.native-azure.enabled=true
+    azure.auth-type=ACCESS_KEY
+    azure.access-key=${ENV:AZURE_ACCESS_KEY}
+
+# Trino config.properties for memory tuning
+config:
+  config.properties: |-
+    coordinator=true
+    node-scheduler.include-coordinator=false
+    http-server.http.port=8080
+    query.max-memory=320GB                        # Total across cluster
+    query.max-memory-per-node=64GB
+    memory.heap-headroom-per-node=8GB
+    discovery-server.enabled=true
+    discovery.uri=http://trino:8080
+
 coordinator:
-  jvm:
-    maxHeapSize: "2G"
+  nodeSelector:
+      agentpool: workerpool
+
+  tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "worker"
+        effect: "NoSchedule"
+      - key: "kubernetes.azure.com/scalesetpriority"
+        operator: "Equal"
+        value: "spot"
+        effect: "NoSchedule"
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: agentpool
+                operator: In
+                values:
+                  - workerpool
+
+worker:
+  nodeSelector:
+      agentpool: workerpool
+
+  tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "worker"
+        effect: "NoSchedule"
+      - key: "kubernetes.azure.com/scalesetpriority"
+        operator: "Equal"
+        value: "spot"
+        effect: "NoSchedule"
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: agentpool
+                operator: In
+                values:
+                  - workerpool
+
+  resources:
+    requests:
+      cpu: "14"
+      memory: "120Gi"
+    limits:
+      cpu: "14"
+      memory: "120Gi"
+  autoscaling:
+    enabled: true
+    minReplicas: 2         # Min number of worker pods
+    maxReplicas: 5         # Max number of worker pods
+    targetCPUUtilizationPercentage: 70   # Scale up/down based on CPU usage
+    targetMemoryUtilizationPercentage: 75 # Also scale based on memory usage
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+      scaleUp:
+        stabilizationWindowSeconds: 0
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+          - type: Pods
+            value: 4
+            periodSeconds: 15
+        selectPolicy: Max

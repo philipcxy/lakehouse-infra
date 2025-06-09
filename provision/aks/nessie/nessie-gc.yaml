@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nessie-gc-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: nessie-gc
+          image: ghcr.io/projectnessie/nessie-gc:0.101.3
+          args:
+            - gc
+            - --uri
+            - http://nessie-service.default.svc.cluster.local:80/api/v2
+            - --jdbc
+            - --jdbc-url
+            - "jdbc:postgresql://postgres-service.default.svc.cluster.local:5432/nessie"
+            - --jdbc-user
+            - "nessie"
+            - --jdbc-password
+            - "$(nessie-db-password)"
+            - -H
+            - fs.azure.account.key.bettingdls.dfs.core.windows.net=$(betting-fs-storage-key),fs.azure.abfs.endpoint=
+            - --nessie-option
+            - adlfs.account-name=bettingdls,adlfs.account-key==$(betting-fs-storage-key)
+            - -I
+            - adls.auth.shared-key.account.name=bettingdls,adls.auth.shared-key.account.key=$(betting-fs-storage-key)
+          env:
+            - name: nessie-db-password
+              valueFrom:
+                secretKeyRef:
+                  name: nessie-secret
+                  key: nessie-db-password
+            - name: betting-fs-storage-key
+              valueFrom:
+                secretKeyRef:
+                  name: betting-fs-storage-secret
+                  key: account_key
+      restartPolicy: Never

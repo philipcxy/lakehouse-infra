@@ -1,5 +1,7 @@
 configOverrides:
   secret: |
-    SECRET_KEY = ${superset_secret}
-additionalRequirements:
-  - sqlalchemy-trino
+    SECRET_KEY = ${superset_secret} # Need to create this
+bootstrapScript: |
+  #!/bin/bash
+  pip install trino
+  if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
