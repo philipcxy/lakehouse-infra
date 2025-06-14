@@ -27,7 +27,7 @@ ingress:
                 number: 8080
 
 server:
-  workers: 2 # Number of worker nodes. Total nodes = 1 (coordinator) + 4 (workers) = 5
+  workers: 1 # Number of worker nodes. Total nodes = 1 (coordinator) + 1 (workers) = 2
   config:
     query:
       maxMemory: "200GB" # Total user memory for a query across the cluster
@@ -75,16 +75,7 @@ coordinator:
       heapHeadroomPerNode: "15GB" 
           
   nodeSelector:
-      agentpool: workerpool
-  tolerations:
-      - key: "dedicated"
-        operator: "Equal"
-        value: "worker"
-        effect: "NoSchedule"
-      - key: "kubernetes.azure.com/scalesetpriority"
-        operator: "Equal"
-        value: "spot"
-        effect: "NoSchedule"
+      agentpool: agentpool
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -93,14 +84,7 @@ coordinator:
               - key: agentpool
                 operator: In
                 values:
-                  - workerpool
-  resources:
-      requests:
-        memory: "100Gi" # Slightly more than 96G -Xmx to allow some wiggle room for OS/other overhead
-        cpu: "10" # Based on your 16vCPU, leave some for OS/kubelet
-      limits:
-        memory: "105Gi" # Should be larger than request and -Xmx
-        cpu: "14"
+                  - agentpool
 
 worker:
   jvm:
@@ -127,7 +111,7 @@ worker:
       
   autoscaling:
       enabled: true
-      minReplicas: 2         # Min number of worker pods
+      minReplicas: 0         # Min number of worker pods
       maxReplicas: 5         # Max number of worker pods
       targetCPUUtilizationPercentage: 70   # Scale up/down based on CPU usage
       targetMemoryUtilizationPercentage: 75 # Also scale based on memory usage
