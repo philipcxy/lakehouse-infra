@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: betting-aks-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: azurefile-static
+  csi:
+    driver: file.csi.azure.com
+    readOnly: true
+    volumeHandle: stbettingaks#betting-aks-volume
+    volumeAttributes:
+      shareName: betting-aks-volume
+      storageAccount: stbettingaks
+    nodeStageSecretRef:
+      name: stbettingaks-storage-secret
+      namespace: default
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: betting-aks-pvc
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 5Gi  
+  storageClassName: azurefile-static
+
