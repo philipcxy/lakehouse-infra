@@ -1,3 +1,7 @@
+image:
+  repository: ghcr.io/projectnessie/nessie
+  pullPolicy: IfNotPresent
+  tag: "0.104.1" # Something has changed in 104.2: java.lang.IllegalStateException: storage shared key missing. Fix another time.
 authentication:
   enabled: false
 catalog:
