@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app.kubernetes.io/component: spark-executor # Custom label from template
+    azure.workload.identity/use: "true"  
+spec:
+  # Define tolerations directly in the template
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "worker"
+      effect: "NoSchedule"
+    - key: "kubernetes.azure.com/scalesetpriority"
+      operator: "Equal"
+      value: "spot"
+      effect: "NoSchedule"
+  
+  nodeSelector:
+    agentpool: workerpool 
+  

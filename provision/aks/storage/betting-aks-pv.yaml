@@ -20,15 +20,3 @@ spec:
       name: stbettingaks-storage-secret
       namespace: default
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: betting-aks-pvc
-spec:
-  accessModes:
-    - ReadOnlyMany
-  resources:
-    requests:
-      storage: 5Gi  
-  storageClassName: azurefile-static
-

@@ -1,0 +1,15 @@
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spark-jobs-pvc
+  namespace: spark-jobs
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 5Gi  
+  volumeName: betting-aks-pv
+  storageClassName: azurefile-static
+

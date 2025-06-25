@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-connect-server
+  namespace: spark-jobs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-connect-server
+  template:
+    metadata:
+      labels:
+        app: spark-connect-server
+        azure.workload.identity/use: "true"  
+    spec:
+      serviceAccountName: spark-sa
+      containers:
+        - name: spark-connect-server
+          image: bettingakscontainerregistry.azurecr.io/spark-connect:3.5.6
+          imagePullPolicy: Always
+          command: ["/opt/spark/bin/spark-submit"]
+          args:
+            - "--class"
+            - "org.apache.spark.sql.connect.service.SparkConnectServer"
+            - "--conf"
+            - "spark.connect.port=15002"
+            - "local:///opt/spark/jars/spark-connect_2.12-3.5.6.jar"
+          ports:
+            - containerPort: 15002
+              name: spark-connect
+            - containerPort: 4040
+              name: spark-ui
+            - containerPort: 7078
+              name: driver-rpc
+            - containerPort: 7079
+              name: blockmanager
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          volumeMounts:
+            - name: spark-resources-volume
+              mountPath: /mnt/spark-resources
+              readOnly: true
+              subPath: spark-resources
+      volumes:
+        - name: spark-resources-volume
+          persistentVolumeClaim:
+            claimName: spark-jobs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-connect-service
+  namespace: spark-jobs
+spec:
+  selector:
+    app: spark-connect-server
+  type: LoadBalancer
+  ports:
+    - name: spark-connect
+      port: 15002
+      targetPort: 15002
+    - name: spark-ui
+      port: 4040
+      targetPort: 4040
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-connect-internal-service
+  namespace: spark-jobs
+spec:
+  selector:
+    app: spark-connect-server
+  type: ClusterIP
+  ports:
+    - name: driver-rpc
+      port: 7078
+      targetPort: 7078
+    - name: blockmanager
+      port: 7079
+      targetPort: 7079
