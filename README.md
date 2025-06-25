@@ -1,28 +1,29 @@
 # Lakehouse Infra
-Code for deploying infrastructure for an Iceberg lakehouse on Azure. 
 
-## Introduction
-The primary goal was to achieve "production ready" lakehouse infra for a personal project which doesn't need to be running 24/7. I originally opted for Container Apps and encountered various issues:
-- Starting with a container app for Nessie connecting to a Postgress container app in the same envrionment. Whilst this works fine, the storage is of course not persistent so shutting down the apps would result in full loss of data. Therefore...
-- I added Azure Files Storage for the Postgres container app but SMB protocol doesn't support `chown` commands which are run by `initdb` on start. Therefore...
-- I upgraded the storage to Premium tier in order to enable NFS.
+This repository contains infrastructure-as-code (IaC) and supporting resources for deploying and managing a data lakehouse architecture.
 
-This is the current implementation found in `provision/bicep`.
- 
-However, the cost of Premium (with the minimum provisioned storage of 100Gb - overkill for this use case) was equivalent to a managed instance of Azure Postgres so I experimented with using that instead. However, the Flexible server offering from Azure - the only option for new instances now that Single server is deprecated - is using SHA 1 root certificate which is incompatible with Nessie.
+## Features
 
-Many of the issues above could have been worked around but ultimately I decided to move to AKS for more control and flexibility. The costs are low when not running (and can be reduced further by using a Baisc load balancer instead of Standard) and will of course scale with VM size when operating. The manifests can be found in `provision/aks`
+- Automated provisioning of cloud resources
+- Modular and reusable infrastructure components
+- Support for data lake and data warehouse integration
+- Security best practices and monitoring
 
-## How to run
-### Container Apps
-There is a Github workflow included which essentially runs the following command:
+## Project Structure
+
 ```
-az deployment group create \
-                --resource-group {RESOURCE_GROUP} \
-                --template-file provision/bicep/nessie-containerapp/main.bicep \
-                --parameters provision/bicep/nessie-containerapp/main.bicepparam \
-                --parameters dbPasswordSecretValue='{PASSWORD}'
+provision
+├── aks/              # Kubernetes definitions and helm chart values
+├───── database/      # Generic Postgres deployment (used for Nessie)
+├───── helm-values/   # Helm values for different charts
+├───── nessie/        # Nessie (Iceberg catalog). Depends on postgres deployment OLD DEPLOYMENT METHOD
+├───── spark/         # spark related deployments for a cluster running Spark Connect
+├───── storage/       # Volumes and claims to remote (persistent) storage
+├───── trader/        # Application deployment (and website)
+├── bicep/            # Various resources for a pure PaaS Azure Nessie deployment. Dropped in favour of AKS now.
+└── README.md
 ```
 
-### AKS
-Assumes an existing cluster. Manifests exist in `provision/aks` and can be applied as usual. For example to deploy Postgres: `kubectl apply -f provision/aks/database/postgres.yaml`
+## License
+
+This project is licensed under the MIT License.
