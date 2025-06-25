@@ -1,0 +1,103 @@
+
+image:
+  repository: bitnami/spark
+  tag: 3.5.2
+      
+metrics:
+  enabled: true
+
+service:
+  type: LoadBalancer
+  port: 80
+
+## MASTER CONFIGURATION
+master:
+  replicaCount: 1
+
+  nodeSelector:
+      agentpool: agentpool
+
+  config:
+    spark.connect.enabled: true
+    spark.connect.port: 15002
+    spark.driver.bindAddress: "0.0.0.0"
+    spark.hadoop.hadoop.security.authentication: simple
+    spark.hadoop.hadoop.security.authorization: false
+
+    
+  extraVolumes:
+  - name: spark-resources
+    persistentVolumeClaim:
+      claimName: betting-aks-pvc
+
+  extraVolumeMounts:
+    - name: spark-resources
+      mountPath: /mnt/spark-resources
+      subPath: spark-resources
+      readOnly: true
+      
+  extraEnvVars:
+    - name: SPARK_EXTRA_CLASSPATH
+      value: /mnt/spark-resources/jars/*
+    - name: SPARK_CONF_DIR
+      value: /mnt/spark-resources/conf
+    - name: HOME
+      value: /tmp
+
+  extraJavaOpts: "-Duser.home=/tmp"
+
+        
+## WORKER CONFIGURATION
+worker:
+  replicaCount: 1 # Adjust based on expected load or set to match node count
+
+  resources:
+    requests:
+      memory: 110Gi
+      cpu: 14
+    limits:
+      memory: 120Gi
+      cpu: 15
+
+  nodeSelector:
+      agentpool: workerpool
+  tolerations:
+      - key: dedicated
+        operator: Equal
+        value: worker
+        effect: NoSchedule
+      - key: kubernetes.azure.com/scalesetpriority
+        operator: Equal
+        value: spot
+        effect: NoSchedule
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: agentpool
+                operator: In
+                values:
+                  - workerpool
+
+  extraVolumes:
+  - name: spark-resources
+    persistentVolumeClaim:
+      claimName: betting-aks-pvc
+
+  extraVolumeMounts:
+    - name: spark-resources
+      mountPath: /mnt/spark-resources
+      subPath: spark-resources
+      readOnly: true
+
+  extraEnvVars:
+    - name: SPARK_EXTRA_CLASSPATH
+      value: /mnt/spark-resources/jars/*
+    - name: SPARK_CONF_DIR
+      value: /mnt/spark-resources/conf
+    - name: HOME
+      value: /tmp
+  extraJavaOpts: "-Duser.home=/tmp"
+
+
