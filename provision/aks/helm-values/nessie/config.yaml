@@ -12,15 +12,34 @@ catalog:
       - name: betting
         type: rest
         location: abfss://bettingfs@bettingdls.dfs.core.windows.net/warehouse
+      - name: betting_warehouse
+        type: rest
+        location: abfss://bettingfs@stbettingwarehouseukso.dfs.core.windows.net/warehouse
   storage:
     adls:
       defaultOptions:
+        endpoint: https://stbettingwarehouseukso.dfs.core.windows.net/bettingfs
+        authType: STORAGE_SHARED_KEY
+        accountSecret:
+          name: betting-warehouse-fs-storage-secret
+          accountName: account_name
+          accountKey: account_key
+    fileSystems:
+      weeu:
         endpoint: https://bettingdls.dfs.core.windows.net/bettingfs
         authType: STORAGE_SHARED_KEY
         accountSecret:
           name: betting-fs-storage-secret
-          accountKey: account_key
           accountName: account_name
+          accountKey: account_key
+      ukso:
+        endpoint: https://stbettingwarehouseukso.dfs.core.windows.net/bettingfs
+        authType: STORAGE_SHARED_KEY
+        accountSecret:
+          name: betting-warehouse-fs-storage-secret
+          accountName: account_name
+          accountKey: account_key
+
 versionStoreType: JDBC2
 jdbc:
   jdbcUrl: jdbc:postgresql://postgres-service.default.svc.cluster.local:5432/nessie
@@ -28,3 +47,7 @@ jdbc:
     name: nessie-secret
     username: postgres_username
     password: postgres_password
+
+
+
+
