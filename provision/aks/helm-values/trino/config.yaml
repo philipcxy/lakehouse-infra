@@ -42,6 +42,15 @@ catalogs:
     azure.auth-type=ACCESS_KEY
     azure.access-key=${ENV:AZURE_ACCESS_KEY}
 
+  betting_warehouse_dev: |-
+    connector.name=iceberg
+    iceberg.catalog.type=rest
+    iceberg.rest-catalog.uri=http://nessie.default.svc.cluster.local:19120/iceberg
+    iceberg.rest-catalog.prefix=dev
+    fs.native-azure.enabled=true
+    azure.auth-type=ACCESS_KEY
+    azure.access-key=${ENV:AZURE_ACCESS_KEY}
+
 coordinator:
   jvm:
     maxHeapSize: "96G" 
